@@ -19,7 +19,15 @@ class TetrisView(context: Context, attrs: AttributeSet) : View(context, attrs) {
         super.onDraw(canvas)
         game?.let { g ->
             val cellSize = width / g.cols.toFloat()
-            // Фон
+
+            // Вычисляем, сколько строк помещается в видимой области
+            val visibleRows = height / cellSize
+
+            // Если игровая сетка больше видимой, сдвигаем её вверх,
+            // чтобы нижняя часть грида совпадала с TetrisView
+            val yOffset = if (g.rows > visibleRows) (g.rows - visibleRows) * cellSize else 0f
+
+            // Заливаем фон
             canvas.drawColor(Color.BLACK)
 
             // Отрисовка зафиксированных блоков
@@ -28,13 +36,18 @@ class TetrisView(context: Context, attrs: AttributeSet) : View(context, attrs) {
                     val cell = g.grid[y][x]
                     if (cell != 0) {
                         paint.color = cell
-                        canvas.drawRect(
-                            x * cellSize,
-                            y * cellSize,
-                            (x + 1) * cellSize,
-                            (y + 1) * cellSize,
-                            paint
-                        )
+                        val top = y * cellSize - yOffset
+                        val bottom = (y + 1) * cellSize - yOffset
+                        // Рисуем только если блок находится в видимой области
+                        if (bottom > 0 && top < height) {
+                            canvas.drawRect(
+                                x * cellSize,
+                                top,
+                                (x + 1) * cellSize,
+                                bottom,
+                                paint
+                            )
+                        }
                     }
                 }
             }
@@ -49,12 +62,14 @@ class TetrisView(context: Context, attrs: AttributeSet) : View(context, attrs) {
                 for (point in tetro.getCells(rotation)) {
                     val x = currentX + point.x
                     val y = currentY + point.y
-                    if (y >= 0) {
+                    val top = y * cellSize - yOffset
+                    val bottom = (y + 1) * cellSize - yOffset
+                    if (bottom > 0 && top < height) {
                         canvas.drawRect(
                             x * cellSize,
-                            y * cellSize,
+                            top,
                             (x + 1) * cellSize,
-                            (y + 1) * cellSize,
+                            bottom,
                             paint
                         )
                     }
