@@ -10,8 +10,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Tetris">
 
+        <!-- Если GameActivity не имеет intent filter, можно указать false -->
         <activity
-            android:name=".MainActivity"
+            android:name=".GameActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"/>
+
+        <!-- Стартовый экран (лаунчер) должен быть экспортирован -->
+        <activity
+            android:name=".StartActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

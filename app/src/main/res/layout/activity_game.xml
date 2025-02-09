@@ -6,19 +6,19 @@
     android:layout_height="match_parent"
     android:background="@drawable/gradient_bg">
 
-    <!-- Игровое поле с зафиксированным соотношением 10:20 -->
+    <!-- Tetris View -->
     <com.example.tetris.TetrisView
         android:id="@+id/tetrisView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintDimensionRatio="10:20"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@+id/controlLayout"
+        app:layout_constraintDimensionRatio="1:2"
         android:background="#222222"/>
 
-    <!-- Вывод счета -->
+    <!-- Score Display -->
     <TextView
         android:id="@+id/scoreTextView"
         android:layout_width="wrap_content"
@@ -30,7 +30,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- Панель управления -->
+    <!-- Control Panel -->
     <LinearLayout
         android:id="@+id/controlLayout"
         android:layout_width="0dp"
@@ -64,13 +64,15 @@
             android:text="▶"
             android:textSize="24sp"/>
 
+        <!-- Исправленная строка 18 (была ошибка в атрибуте marginStart) -->
         <Button
             android:id="@+id/btnDown"
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:text="▼"
             android:textSize="24sp"
-            android:layout_marginStart="24dp"/>
+            android:layout_marginStart="24dp"/> <!-- Убедитесь, что это последний атрибут -->
+
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

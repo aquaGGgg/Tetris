@@ -6,7 +6,6 @@ import android.os.Looper
 class TetrisGame {
     val rows = 20
     val cols = 10
-    // Игровое поле: 0 – пустая клетка, ненулевое значение – цвет блока
     val grid: Array<IntArray> = Array(rows) { IntArray(cols) }
 
     private var currentTetromino: Tetromino? = null
@@ -14,53 +13,75 @@ class TetrisGame {
     private var currentY = 0
     private var currentRotation = 0
 
+    // dropProgress накапливает дробное смещение между целочисленными перемещениями вниз
+    private var dropProgress = 0f
+    private val FALL_DURATION = 500L
+
     private val scoreManager = ScoreManager()
+    var onGameOver: (() -> Unit)? = null
     private var scoreChangeListener: ((Int) -> Unit)? = null
-
-    // Новый слушатель для обновления экрана после каждого тика
-    private var gameUpdateListener: (() -> Unit)? = null
-
-    private val handler = Handler(Looper.getMainLooper())
 
     fun setOnScoreChangeListener(listener: (Int) -> Unit) {
         scoreChangeListener = listener
     }
 
-    fun setOnGameUpdateListener(listener: () -> Unit) {
-        gameUpdateListener = listener
+    private val frameHandler = Handler(Looper.getMainLooper())
+    private var lastUpdateTime = System.currentTimeMillis()
+    private val frameRunnable = object : Runnable {
+        override fun run() {
+            val now = System.currentTimeMillis()
+            val dt = now - lastUpdateTime
+            lastUpdateTime = now
+            update(dt)
+            frameHandler.postDelayed(this, 16)
+        }
     }
 
     fun start() {
-        spawnTetromino()
-        handler.postDelayed(tickRunnable, 500)
+        resetGame()
+        frameHandler.post(frameRunnable)
     }
 
-    private val tickRunnable = object : Runnable {
-        override fun run() {
-            tick()
-            // Вызываем обновление экрана после каждого тика
-            gameUpdateListener?.invoke()
-            handler.postDelayed(this, 500)
+    private fun update(dt: Long) {
+        dropProgress += dt.toFloat() / FALL_DURATION
+
+        currentTetromino?.let { tetro ->
+            val maxOffset = tetro.getCells(currentRotation).maxOf { it.y }
+            val allowedProgress = (rows - 1 - currentY - maxOffset).toFloat()
+
+            if (allowedProgress <= 0f) {
+                dropProgress = 0f
+                fixCurrentTetromino()
+                clearLines()
+                spawnTetromino()
+                return
+            }
+            dropProgress = dropProgress.coerceAtMost(allowedProgress)
+        }
+
+        while (dropProgress >= 1f) {
+            dropProgress -= 1f
+            if (!moveCurrentTetromino(0, 1)) {
+                dropProgress = 0f
+                fixCurrentTetromino()
+                clearLines()
+                spawnTetromino()
+            }
         }
     }
 
-    private fun tick() {
-        if (!moveCurrentTetromino(0, 1)) {
-            fixCurrentTetromino()
-            clearLines()
-            spawnTetromino()
-        }
-    }
+    fun getDropProgress() = dropProgress
 
     fun moveCurrentTetromino(dx: Int, dy: Int): Boolean {
         val newX = currentX + dx
         val newY = currentY + dy
-        if (isValidPosition(newX, newY, currentRotation)) {
+        return if (isValidPosition(newX, newY, currentRotation)) {
             currentX = newX
             currentY = newY
-            return true
+            true
+        } else {
+            false
         }
-        return false
     }
 
     private fun isValidPosition(x: Int, y: Int, rotation: Int): Boolean {
@@ -68,14 +89,10 @@ class TetrisGame {
             for (point in tetro.getCells(rotation)) {
                 val newX = x + point.x
                 val newY = y + point.y
-                // Если выходит за боковые или нижнюю границу – позиция недопустима
-                if (newX < 0 || newX >= cols || newY >= rows) {
-                    return false
-                }
-                // Если внутри поля уже есть блок – недопустимо
-                if (newY >= 0 && grid[newY][newX] != 0) {
-                    return false
-                }
+
+                if (newX < 0 || newX >= cols) return false
+                if (newY >= rows) return false
+                if (newY >= 0 && grid[newY][newX] != 0) return false
             }
         }
         return true
@@ -95,13 +112,10 @@ class TetrisGame {
 
     private fun clearLines() {
         var linesCleared = 0
-        for (y in 0 until rows) {
+        for (y in rows - 1 downTo 0) {
             if (grid[y].all { it != 0 }) {
-                // Сдвигаем все строки выше вниз
-                for (i in y downTo 1) {
-                    grid[i] = grid[i - 1].copyOf()
-                }
-                grid[0] = IntArray(cols) { 0 }
+                System.arraycopy(grid, 0, grid, 1, y)
+                grid[0] = IntArray(cols)
                 linesCleared++
             }
         }
@@ -113,32 +127,36 @@ class TetrisGame {
 
     private fun spawnTetromino() {
         currentTetromino = Tetromino.random()
-        currentX = cols / 2
+        currentX = cols / 2 - 1  // Центрирование фигуры (особенно для I-формы)
         currentY = 0
         currentRotation = 0
-        // Если новая фигура не помещается – сбрасываем игру
+
         if (!isValidPosition(currentX, currentY, currentRotation)) {
-            resetGame()
+            onGameOver?.invoke()
         }
     }
 
     fun rotateCurrentTetromino() {
-        val newRotation = (currentRotation + 1) % (currentTetromino?.rotationCount ?: 1)
-        if (isValidPosition(currentX, currentY, newRotation)) {
-            currentRotation = newRotation
+        currentTetromino?.let { tetro ->
+            val newRotation = (currentRotation + 1) % tetro.rotationCount
+            val offsets = listOf(0, 1, -1, 2, -2)  // Приоритет смещений при повороте
+
+            for (dx in offsets) {
+                if (isValidPosition(currentX + dx, currentY, newRotation)) {
+                    currentX += dx
+                    currentRotation = newRotation
+                    return
+                }
+            }
         }
     }
 
-    fun moveLeft() {
-        moveCurrentTetromino(-1, 0)
-    }
-
-    fun moveRight() {
-        moveCurrentTetromino(1, 0)
-    }
+    fun moveLeft() = moveCurrentTetromino(-1, 0)
+    fun moveRight() = moveCurrentTetromino(1, 0)
 
     fun moveDown() {
         if (!moveCurrentTetromino(0, 1)) {
+            dropProgress = 0f
             fixCurrentTetromino()
             clearLines()
             spawnTetromino()
@@ -146,19 +164,21 @@ class TetrisGame {
     }
 
     fun resetGame() {
-        for (y in 0 until rows) {
-            for (x in 0 until cols) {
-                grid[y][x] = 0
-            }
-        }
+        grid.forEach { it.fill(0) }
         scoreManager.reset()
-        scoreChangeListener?.invoke(scoreManager.getScore())
+        scoreChangeListener?.invoke(0)
         spawnTetromino()
+        dropProgress = 0f
     }
 
-    // Геттеры для отображения текущей фигуры
+    fun getScore(): Int = scoreManager.getScore()
     fun getCurrentTetromino(): Tetromino? = currentTetromino
     fun getCurrentX(): Int = currentX
     fun getCurrentY(): Int = currentY
     fun getCurrentRotation(): Int = currentRotation
+
+    // Новый метод для проверки, можно ли сдвинуть фигуру вниз на одну клетку
+    fun canMoveDown(): Boolean {
+        return isValidPosition(currentX, currentY + 1, currentRotation)
+    }
 }

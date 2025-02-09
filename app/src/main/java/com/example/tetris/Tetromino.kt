@@ -2,7 +2,6 @@ package com.example.tetris
 
 import android.graphics.Color
 import android.graphics.Point
-import kotlin.random.Random
 
 class Tetromino(val rotations: Array<Array<Point>>, val color: Int) {
     val rotationCount: Int get() = rotations.size
@@ -13,7 +12,7 @@ class Tetromino(val rotations: Array<Array<Point>>, val color: Int) {
 
     companion object {
         private val tetrominoes = listOf(
-            // I-подобная фигура
+            // I-форма
             Tetromino(
                 rotations = arrayOf(
                     arrayOf(Point(-1, 0), Point(0, 0), Point(1, 0), Point(2, 0)),
@@ -21,14 +20,14 @@ class Tetromino(val rotations: Array<Array<Point>>, val color: Int) {
                 ),
                 color = Color.CYAN
             ),
-            // O-подобная фигура
+            // O-форма
             Tetromino(
                 rotations = arrayOf(
                     arrayOf(Point(0, 0), Point(1, 0), Point(0, 1), Point(1, 1))
                 ),
                 color = Color.YELLOW
             ),
-            // T-подобная фигура
+            // T-форма
             Tetromino(
                 rotations = arrayOf(
                     arrayOf(Point(-1, 0), Point(0, 0), Point(1, 0), Point(0, 1)),
@@ -38,7 +37,7 @@ class Tetromino(val rotations: Array<Array<Point>>, val color: Int) {
                 ),
                 color = Color.MAGENTA
             ),
-            // S-подобная фигура
+            // S-форма
             Tetromino(
                 rotations = arrayOf(
                     arrayOf(Point(0, 0), Point(1, 0), Point(-1, 1), Point(0, 1)),
@@ -46,7 +45,7 @@ class Tetromino(val rotations: Array<Array<Point>>, val color: Int) {
                 ),
                 color = Color.GREEN
             ),
-            // Z-подобная фигура
+            // Z-форма
             Tetromino(
                 rotations = arrayOf(
                     arrayOf(Point(-1, 0), Point(0, 0), Point(0, 1), Point(1, 1)),
@@ -54,7 +53,7 @@ class Tetromino(val rotations: Array<Array<Point>>, val color: Int) {
                 ),
                 color = Color.RED
             ),
-            // J-подобная фигура
+            // J-форма
             Tetromino(
                 rotations = arrayOf(
                     arrayOf(Point(-1, -1), Point(-1, 0), Point(0, 0), Point(1, 0)),
@@ -64,7 +63,7 @@ class Tetromino(val rotations: Array<Array<Point>>, val color: Int) {
                 ),
                 color = Color.BLUE
             ),
-            // L-подобная фигура
+            // L-форма
             Tetromino(
                 rotations = arrayOf(
                     arrayOf(Point(1, -1), Point(-1, 0), Point(0, 0), Point(1, 0)),
@@ -72,12 +71,12 @@ class Tetromino(val rotations: Array<Array<Point>>, val color: Int) {
                     arrayOf(Point(-1, 0), Point(0, 0), Point(1, 0), Point(-1, 1)),
                     arrayOf(Point(-1, -1), Point(0, -1), Point(0, 0), Point(0, 1))
                 ),
-                color = Color.rgb(255, 165, 0) // оранжевый
+                color = Color.rgb(255, 165, 0)
             )
         )
 
         fun random(): Tetromino {
-            return tetrominoes.random(Random)
+            return tetrominoes.random()
         }
     }
 }

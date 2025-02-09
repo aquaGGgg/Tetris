@@ -1,7 +1,7 @@
 package com.example.tetris
 
 class ScoreManager {
-    private var score = 0
+    private var score: Int = 0
 
     fun addScore(points: Int) {
         score += points

@@ -5,28 +5,38 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
-class MainActivity : AppCompatActivity() {
+class GameActivity : AppCompatActivity() {
     private lateinit var tetrisView: TetrisView
     private lateinit var scoreTextView: TextView
     private val game = TetrisGame()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_game)
 
         tetrisView = findViewById(R.id.tetrisView)
         scoreTextView = findViewById(R.id.scoreTextView)
 
-        // Используем корректный метод для отслеживания изменений счёта
         game.setOnScoreChangeListener { score ->
             runOnUiThread {
                 scoreTextView.text = "Score: $score"
             }
         }
 
+        game.onGameOver = {
+            val currentScore = game.getScore()
+            if (currentScore > SessionManager.maxScore) {
+                SessionManager.maxScore = currentScore
+            }
+            runOnUiThread {
+                finish()
+            }
+        }
+
         tetrisView.setGame(game)
         game.start()
 
+        // Кнопки управления
         findViewById<Button>(R.id.btnLeft).setOnClickListener {
             game.moveLeft()
             tetrisView.invalidate()

@@ -9,7 +9,7 @@ import android.view.View
 
 class TetrisView(context: Context, attrs: AttributeSet) : View(context, attrs) {
     private var game: TetrisGame? = null
-    private val paint = Paint()
+    private val paint = Paint().apply { style = Paint.Style.FILL }
 
     fun setGame(game: TetrisGame) {
         this.game = game
@@ -18,63 +18,59 @@ class TetrisView(context: Context, attrs: AttributeSet) : View(context, attrs) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         game?.let { g ->
-            val cellSize = width / g.cols.toFloat()
+            val cellSize = width.toFloat() / g.cols
+            val totalHeight = cellSize * g.rows
 
-            // Вычисляем, сколько строк помещается в видимой области
-            val visibleRows = height / cellSize
+            // Отрисовка фона игрового поля
+            canvas.drawRect(0f, 0f, width.toFloat(), totalHeight, Paint().apply {
+                color = Color.BLACK
+            })
 
-            // Если игровая сетка больше видимой, сдвигаем её вверх,
-            // чтобы нижняя часть грида совпадала с TetrisView
-            val yOffset = if (g.rows > visibleRows) (g.rows - visibleRows) * cellSize else 0f
-
-            // Заливаем фон
-            canvas.drawColor(Color.BLACK)
-
-            // Отрисовка зафиксированных блоков
+            // Отрисовка зафиксированных блоков (из grid)
             for (y in 0 until g.rows) {
                 for (x in 0 until g.cols) {
-                    val cell = g.grid[y][x]
-                    if (cell != 0) {
-                        paint.color = cell
-                        val top = y * cellSize - yOffset
-                        val bottom = (y + 1) * cellSize - yOffset
-                        // Рисуем только если блок находится в видимой области
-                        if (bottom > 0 && top < height) {
-                            canvas.drawRect(
-                                x * cellSize,
-                                top,
-                                (x + 1) * cellSize,
-                                bottom,
-                                paint
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Отрисовка текущей фигуры
-            val tetro = g.getCurrentTetromino()
-            if (tetro != null) {
-                paint.color = tetro.color
-                val currentX = g.getCurrentX()
-                val currentY = g.getCurrentY()
-                val rotation = g.getCurrentRotation()
-                for (point in tetro.getCells(rotation)) {
-                    val x = currentX + point.x
-                    val y = currentY + point.y
-                    val top = y * cellSize - yOffset
-                    val bottom = (y + 1) * cellSize - yOffset
-                    if (bottom > 0 && top < height) {
+                    if (g.grid[y][x] != 0) {
+                        paint.color = g.grid[y][x]
                         canvas.drawRect(
                             x * cellSize,
-                            top,
+                            y * cellSize,
                             (x + 1) * cellSize,
-                            bottom,
+                            (y + 1) * cellSize,
                             paint
                         )
                     }
                 }
             }
+
+            // Определяем effectiveY для отрисовки текущей фигуры.
+            // Если движение вниз невозможно (фигура почти достигла дна или соприкасается с зафиксированными блоками),
+            // используем целое положение currentY без дробного смещения.
+            val effectiveY = if (!g.canMoveDown()) {
+                g.getCurrentY().toFloat()
+            } else {
+                g.getCurrentY() + g.getDropProgress()
+            }
+
+            // Отрисовка текущей фигуры (даже если она частично находится выше поля)
+            g.getCurrentTetromino()?.let { tetro ->
+                paint.color = tetro.color
+                val rotation = g.getCurrentRotation()
+                tetro.getCells(rotation).forEach { point ->
+                    val yPos = (effectiveY + point.y) * cellSize
+                    if (yPos + cellSize >= 0) { // Рисуем только видимую часть
+                        canvas.drawRect(
+                            (g.getCurrentX() + point.x) * cellSize,
+                            yPos,
+                            (g.getCurrentX() + point.x + 1) * cellSize,
+                            yPos + cellSize,
+                            paint
+                        )
+                    }
+                }
+            }
+            // Вызываем перерисовку. Если у вас игровой цикл сам обновляет экран,
+            // можно убрать этот вызов.
+            invalidate()
         }
     }
 }
